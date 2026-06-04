@@ -573,7 +573,23 @@ html, body {
   .card{padding:10px 8px}
 }
 
-/* ===== RECON PAGE ===== */
+/* ===== WA REPORTS PAGE ===== */
+.wa-rep-stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px}
+.wa-rep-stat{background:var(--bg-card2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;text-align:center}
+.wa-rep-stat .sv{font-size:18px;font-weight:800;font-family:monospace}
+.wa-rep-stat .sl{font-size:11px;color:var(--text-2);margin-top:3px}
+.wa-rep-branch-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.wa-rep-branch-table th{background:var(--bg2);padding:6px 8px;text-align:center;color:var(--text-2);font-size:11px;border-bottom:1px solid var(--border)}
+.wa-rep-branch-table td{padding:7px 8px;border-bottom:1px solid rgba(30,45,74,0.3);text-align:center}
+.wa-rep-branch-table tr:last-child td{border-bottom:none}
+.wa-rep-rank-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700}
+.wa-rep-rank-A{background:rgba(16,185,129,0.15);color:var(--green)}
+.wa-rep-rank-B{background:rgba(79,142,247,0.15);color:var(--accent)}
+.wa-rep-rank-C{background:rgba(167,139,250,0.15);color:#a78bfa}
+.wa-rep-rank-D{background:rgba(245,158,11,0.15);color:var(--yellow)}
+.wa-rep-rank-E{background:rgba(244,63,94,0.15);color:var(--red)}
+
+
 .recon-tab{padding:8px 16px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text-2);font-family:'Tajawal',sans-serif;font-size:13px;cursor:pointer;transition:var(--trans);white-space:nowrap;flex-shrink:0}
 .recon-tab:hover,.recon-tab.active{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
 .recon-tab-content{animation:fadeIn 0.2s ease}
@@ -759,6 +775,7 @@ button,.nav-btn,.recon-tab{
       <button class="nav-btn" id="navReports" onclick="showPage('reports')">📊 تقارير</button>
       <button class="nav-btn" id="navAdmin" onclick="showPage('admin')">⚙️ إدارة</button>
       <button class="nav-btn" id="navStars" onclick="showPage('stars')">⭐ النجوم</button>
+      <button class="nav-btn" id="navWaReports" onclick="showPage('wareports')">📤 تقارير واتساب</button>
       <button class="nav-btn" onclick="openWAModal()">📱 واتساب</button>
       <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleBtn" title="تبديل الوضع">🌙</button>
       <button class="nav-btn danger" onclick="doLogout()">خروج</button>
@@ -1004,7 +1021,65 @@ button,.nav-btn,.recon-tab{
     <div class="stars-grid" id="starsGrid"></div>
   </div>
 
+  <!-- WA REPORTS PAGE -->
+  <div class="page" id="pageWareports">
+    <div class="section-header">
+      <div class="section-title">تقارير <span>واتساب الدورية</span></div>
+    </div>
+
+    <!-- Period selector -->
+    <div class="card card-accent" style="margin-bottom:16px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div style="font-size:13px;color:var(--text-2);white-space:nowrap">نوع التقرير:</div>
+        <button class="recon-tab active" id="waRep-tab-weekly" onclick="switchWaRepTab('weekly')">أسبوعي</button>
+        <button class="recon-tab" id="waRep-tab-monthly" onclick="switchWaRepTab('monthly')">شهري</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px" id="waRep-weekly-controls">
+        <label style="font-size:13px;color:var(--text-2)">من:</label>
+        <input type="date" id="waRep-from" class="report-date-input" style="flex:1;min-width:130px">
+        <label style="font-size:13px;color:var(--text-2)">إلى:</label>
+        <input type="date" id="waRep-to" class="report-date-input" style="flex:1;min-width:130px">
+        <button class="btn-next" style="padding:8px 14px;font-size:13px" onclick="buildWaReport()">🔄 توليد</button>
+      </div>
+      <div style="display:none;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px" id="waRep-monthly-controls">
+        <label style="font-size:13px;color:var(--text-2)">الشهر:</label>
+        <input type="month" id="waRep-month" class="report-date-input" style="flex:1;min-width:150px">
+        <button class="btn-next" style="padding:8px 14px;font-size:13px" onclick="buildWaReport()">🔄 توليد</button>
+      </div>
+    </div>
+
+    <!-- Report type tabs -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="recon-tab active" id="waRepType-branches" onclick="switchWaRepType('branches')">🏪 مقارنة الفروع</button>
+      <button class="recon-tab" id="waRepType-cashiers" onclick="switchWaRepType('cashiers')">👤 أداء الكاشيرات</button>
+      <button class="recon-tab" id="waRepType-cashiers-private" onclick="switchWaRepType('cashiers-private')">🔒 تقييم الكاشيرات (بدون مبيعات)</button>
+      <button class="recon-tab" id="waRepType-settle" onclick="switchWaRepType('settle')">⚖️ تسوية العجز</button>
+    </div>
+
+    <!-- Preview area -->
+    <div class="card" style="min-height:120px" id="waRepPreviewCard">
+      <div id="waRepPreviewArea" style="font-size:13px;color:var(--text-2);text-align:center;padding:24px">
+        اختر النطاق الزمني ثم اضغط "توليد"
+      </div>
+    </div>
+
+    <!-- Generated text -->
+    <div id="waRepTextWrap" style="display:none;margin-top:14px">
+      <div style="font-size:12px;color:var(--text-2);margin-bottom:6px">نص التقرير — جاهز للنسخ وإرساله:</div>
+      <textarea id="waRepText" style="width:100%;min-height:200px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:13px;padding:12px;line-height:1.8;resize:vertical;direction:rtl" readonly></textarea>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <button class="btn-save" style="flex:1;min-width:120px" onclick="copyWaReport()">📋 نسخ التقرير</button>
+        <button class="btn-next" style="flex:1;min-width:120px" onclick="sendWaReport()">📱 إرسال واتساب</button>
+        <button class="btn-wa-save" style="flex:1;min-width:120px" onclick="downloadWaImage()">🖼 تصدير صورة</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden canvas for image export -->
+  <canvas id="waRepCanvas" style="display:none"></canvas>
+
   <!-- Support Footer -->
+
   <div class="support-footer">
     <div class="support-person">
       <div class="support-photo-wrap">
@@ -1394,14 +1469,15 @@ function exportForMatchingApp() {
 function showPage(p) {
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-  const pages = {entry:'pageEntry', admin:'pageAdmin', reports:'pageReports', stars:'pageStars', recon:'pageRecon'};
-  const navs  = {entry:'navEntry', admin:'navAdmin', reports:'navReports', stars:'navStars', recon:'navRecon'};
+  const pages = {entry:'pageEntry', admin:'pageAdmin', reports:'pageReports', stars:'pageStars', recon:'pageRecon', wareports:'pageWareports'};
+  const navs  = {entry:'navEntry', admin:'navAdmin', reports:'navReports', stars:'navStars', recon:'navRecon', wareports:'navWaReports'};
   document.getElementById(pages[p]).classList.add('active');
   if (navs[p]) document.getElementById(navs[p]).classList.add('active');
   if (p === 'reports') renderReports();
   if (p === 'admin') renderAdminPage();
   if (p === 'stars') renderStars();
   if (p === 'recon') renderReconPage();
+  if (p === 'wareports') setupWaReportsPage();
 }
 
 // ============================================================
@@ -4705,8 +4781,536 @@ function exportSalesExcel() {
 }
 
 // ============================================================
-// ============= DEFERRED APP START ==========================
+// =================== WA PERIODIC REPORTS ====================
 // ============================================================
+
+let _waRepCurrentTab = 'weekly';
+let _waRepCurrentType = 'branches';
+let _waRepLastText = '';
+
+function switchWaRepTab(tab) {
+  _waRepCurrentTab = tab;
+  ['weekly','monthly'].forEach(t => {
+    document.getElementById('waRep-tab-'+t).classList.toggle('active', t===tab);
+    document.getElementById('waRep-'+t+'-controls').style.display = t===tab?'flex':'none';
+  });
+}
+
+function switchWaRepType(type) {
+  _waRepCurrentType = type;
+  ['branches','cashiers','cashiers-private','settle'].forEach(t => {
+    const el = document.getElementById('waRepType-'+t);
+    if (el) el.classList.toggle('active', t===type);
+  });
+  buildWaReport();
+}
+
+function getWaRepDateRange() {
+  if (_waRepCurrentTab === 'weekly') {
+    const from = document.getElementById('waRep-from').value;
+    const to   = document.getElementById('waRep-to').value;
+    if (!from || !to) return null;
+    return { from, to, label: from.slice(5).replace('-','/') + ' — ' + to.slice(5).replace('-','/') };
+  } else {
+    const m = document.getElementById('waRep-month').value;
+    if (!m) return null;
+    const [y, mo] = m.split('-');
+    const from = m + '-01';
+    const daysInMonth = new Date(parseInt(y), parseInt(mo), 0).getDate();
+    const to = m + '-' + String(daysInMonth).padStart(2,'0');
+    const arabicMonths = ['','يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+    return { from, to, label: arabicMonths[parseInt(mo)] + ' ' + y };
+  }
+}
+
+function getRatingLabel(netDiff) {
+  const abs = Math.abs(netDiff);
+  if (abs === 0)   return { grade:'A', text:'ممتاز ⭐' };
+  if (abs < 20)    return { grade:'B', text:'جيد جداً ✅' };
+  if (abs < 60)    return { grade:'C', text:'جيد 👍' };
+  if (abs < 100)   return { grade:'D', text:'مقبول 🟡' };
+  return { grade:'E', text:'متابعة 🔴' };
+}
+
+function buildWaReport() {
+  const range = getWaRepDateRange();
+  if (!range) { showToast('اختر النطاق الزمني أولاً', 'red'); return; }
+
+  const recs = STATE.records.filter(r => r.saved && r.date >= range.from && r.date <= range.to);
+  if (!recs.length) {
+    document.getElementById('waRepPreviewArea').innerHTML = '<div style="color:var(--text-3);padding:20px;text-align:center">لا توجد بيانات محفوظة في هذه الفترة</div>';
+    document.getElementById('waRepTextWrap').style.display = 'none';
+    return;
+  }
+
+  let previewHtml = '', text = '';
+  const periodLabel = (_waRepCurrentTab==='weekly'?'أسبوعي':'شهري');
+  const header = `📊 تقرير ${periodLabel} — ${range.label}`;
+
+  if (_waRepCurrentType === 'branches') {
+    const result = buildBranchesReport(recs, range, header, periodLabel);
+    previewHtml = result.html;
+    text = result.text;
+  } else if (_waRepCurrentType === 'cashiers') {
+    const result = buildCashiersReport(recs, range, header, periodLabel);
+    previewHtml = result.html;
+    text = result.text;
+  } else if (_waRepCurrentType === 'cashiers-private') {
+    const result = buildCashiersPrivateReport(recs, range, header, periodLabel);
+    previewHtml = result.html;
+    text = result.text;
+  } else {
+    const result = buildSettleReport(recs, range, header, periodLabel);
+    previewHtml = result.html;
+    text = result.text;
+  }
+
+  document.getElementById('waRepPreviewArea').innerHTML = previewHtml;
+  document.getElementById('waRepText').value = text;
+  document.getElementById('waRepTextWrap').style.display = 'block';
+  _waRepLastText = text;
+}
+
+function buildBranchesReport(recs, range, header, periodLabel) {
+  // Aggregate per branch
+  const branchData = {};
+  recs.forEach(rec => {
+    const br = STATE.branches.find(b => b.id === rec.branchId);
+    const name = br ? br.name : rec.branchId;
+    if (!branchData[name]) branchData[name] = { total:0, surplus:0, deficit:0, days:0 };
+    const sum = calcBranchSummary(rec);
+    branchData[name].total += sum.actualCash + sum.actualNet;
+    branchData[name].days++;
+    const net = sum.diff;
+    if (net > 0) branchData[name].surplus += net;
+    else branchData[name].deficit += Math.abs(net);
+  });
+
+  // Sort by total descending
+  const sorted = Object.entries(branchData).sort((a,b) => b[1].total - a[1].total);
+  const grandTotal = sorted.reduce((s,[,v]) => s + v.total, 0);
+  const totalSurplus = sorted.reduce((s,[,v]) => s + v.surplus, 0);
+  const totalDeficit = sorted.reduce((s,[,v]) => s + v.deficit, 0);
+  const netAll = totalSurplus - totalDeficit;
+
+  // HTML preview
+  let html = `<div style="font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">${header}</div>`;
+  html += `<div class="wa-rep-stat-grid">
+    <div class="wa-rep-stat"><div class="sv" style="color:var(--accent)">${formatNum(grandTotal)}</div><div class="sl">إجمالي المبيعات ر.س</div></div>
+    <div class="wa-rep-stat"><div class="sv" style="color:var(--yellow)">${formatNum(totalSurplus)}</div><div class="sl">إجمالي الزيادة</div></div>
+    <div class="wa-rep-stat"><div class="sv" style="color:var(--red)">${formatNum(totalDeficit)}</div><div class="sl">إجمالي العجز</div></div>
+    <div class="wa-rep-stat"><div class="sv" style="color:${netAll>=0?'var(--green)':'var(--red)'}">${netAll>=0?'+':''}${formatNum(netAll)}</div><div class="sl">صافي الفارق</div></div>
+  </div>`;
+  html += `<div style="overflow-x:auto"><table class="wa-rep-branch-table">
+    <thead><tr><th>#</th><th style="text-align:right">الفرع</th><th>المبيعات</th><th>زيادة</th><th>عجز</th><th>صافي</th><th>التقييم</th></tr></thead><tbody>`;
+  sorted.forEach(([name, d], i) => {
+    const net = d.surplus - d.deficit;
+    const rating = getRatingLabel(net);
+    html += `<tr>
+      <td style="color:var(--text-2)">${i+1}</td>
+      <td style="text-align:right;font-weight:700;color:var(--text)">${escHtml(name)}</td>
+      <td style="color:var(--accent)">${formatNum(d.total)}</td>
+      <td style="color:var(--yellow)">${d.surplus>0?formatNum(d.surplus):'—'}</td>
+      <td style="color:var(--red)">${d.deficit>0?formatNum(d.deficit):'—'}</td>
+      <td style="color:${net>=0?'var(--green)':'var(--red)'};font-weight:700">${net>=0?'+':''}${formatNum(net)}</td>
+      <td><span class="wa-rep-rank-badge wa-rep-rank-${rating.grade}">${rating.grade}</span></td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+
+  // Text for WA
+  let text = `${header}\n`;
+  text += `${'━'.repeat(28)}\n`;
+  text += `💰 إجمالي المبيعات: ${formatNum(grandTotal)} ر.س\n`;
+  text += `📈 إجمالي الزيادة: +${formatNum(totalSurplus)} ر.س\n`;
+  text += `📉 إجمالي العجز:  -${formatNum(totalDeficit)} ر.س\n`;
+  text += `⚖️ صافي الفارق: ${netAll>=0?'+':''}${formatNum(netAll)} ر.س\n`;
+  text += `${'━'.repeat(28)}\n\n`;
+  text += `🏆 ترتيب الفروع:\n`;
+  sorted.forEach(([name, d], i) => {
+    const net = d.surplus - d.deficit;
+    const rating = getRatingLabel(net);
+    const medals = ['🥇','🥈','🥉'];
+    const prefix = i < 3 ? medals[i] : `${i+1}.`;
+    text += `${prefix} ${name}\n`;
+    text += `   مبيعات: ${formatNum(d.total)} ر.س | صافي: ${net>=0?'+':''}${formatNum(net)} ر.س\n`;
+    text += `   التقييم: ${rating.text}\n\n`;
+  });
+
+  // Worst deficit & best surplus
+  const worstDef = sorted.filter(([,d])=>d.deficit>0).sort((a,b)=>b[1].deficit-a[1].deficit)[0];
+  const bestSur  = sorted.filter(([,d])=>d.surplus>0).sort((a,b)=>b[1].surplus-a[1].surplus)[0];
+  if (worstDef) text += `⚠️ أعلى عجز: ${worstDef[0]} (${formatNum(worstDef[1].deficit)} ر.س)\n`;
+  if (bestSur)  text += `✅ أعلى زيادة: ${bestSur[0]} (+${formatNum(bestSur[1].surplus)} ر.س)\n`;
+
+  return { html, text };
+}
+
+function buildCashiersReport(recs, range, header, periodLabel) {
+  // Aggregate per branch → per cashier
+  const branchCashiers = {};
+  recs.forEach(rec => {
+    const br = STATE.branches.find(b => b.id === rec.branchId);
+    const bname = br ? br.name : rec.branchId;
+    if (!branchCashiers[bname]) branchCashiers[bname] = {};
+    const activeCashiers = br ? getActiveCashiers(br) : [];
+    activeCashiers.forEach(cIdx => {
+      const c = (rec.cashiers || [])[cIdx];
+      if (!c) return;
+      if (!c.sysCash && !c.sysNet && !c.actualCash && !c.actualNet) return;
+      const key = 'كاشير ' + (cIdx + 1);
+      if (!branchCashiers[bname][key]) branchCashiers[bname][key] = { total:0, surplus:0, deficit:0, days:0 };
+      const cashDiff = (c.actualCash||0) - (c.sysCash||0);
+      const netDiff  = (c.actualNet||0)  - (c.sysNet||0);
+      const net = cashDiff + netDiff;
+      branchCashiers[bname][key].total += (c.actualCash||0) + (c.actualNet||0);
+      branchCashiers[bname][key].days++;
+      if (net > 0) branchCashiers[bname][key].surplus += net;
+      else branchCashiers[bname][key].deficit += Math.abs(net);
+    });
+  });
+
+  let html = `<div style="font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">${header}</div>`;
+  let text = `${header}\n${'━'.repeat(28)}\n\n`;
+
+  Object.entries(branchCashiers).forEach(([bname, cashiers]) => {
+    const cEntries = Object.entries(cashiers);
+    if (!cEntries.length) return;
+
+    html += `<div style="margin-bottom:14px"><div style="background:var(--bg-card2);border:1px solid var(--border);border-radius:10px 10px 0 0;padding:8px 12px;font-family:'Cairo',sans-serif;font-weight:700;font-size:13px;color:var(--text)">🏪 ${escHtml(bname)}</div>`;
+    html += `<div style="border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;overflow:hidden"><table class="wa-rep-branch-table">
+      <thead><tr><th style="text-align:right">الكاشير</th><th>المبيعات</th><th>زيادة</th><th>عجز</th><th>صافي</th><th>التقييم</th></tr></thead><tbody>`;
+
+    text += `🏪 ${bname}\n${'─'.repeat(20)}\n`;
+
+    cEntries.forEach(([cname, d]) => {
+      const net = d.surplus - d.deficit;
+      const rating = getRatingLabel(net);
+      html += `<tr>
+        <td style="text-align:right;font-weight:600;color:var(--accent)">${escHtml(cname)}</td>
+        <td>${formatNum(d.total)}</td>
+        <td style="color:var(--yellow)">${d.surplus>0?'+'+formatNum(d.surplus):'—'}</td>
+        <td style="color:var(--red)">${d.deficit>0?'-'+formatNum(d.deficit):'—'}</td>
+        <td style="color:${net>=0?'var(--green)':'var(--red)'};font-weight:700">${net>=0?'+':''}${formatNum(net)}</td>
+        <td><span class="wa-rep-rank-badge wa-rep-rank-${rating.grade}">${rating.grade}</span></td>
+      </tr>`;
+      text += `  ${cname}:\n`;
+      text += `    مبيعات: ${formatNum(d.total)} ر.س\n`;
+      if (d.surplus > 0) text += `    زيادة: +${formatNum(d.surplus)} ر.س\n`;
+      if (d.deficit > 0) text += `    عجز:   -${formatNum(d.deficit)} ر.س\n`;
+      text += `    صافي: ${net>=0?'+':''}${formatNum(net)} ر.س | ${rating.text}\n\n`;
+    });
+
+    html += `</tbody></table></div></div>`;
+    text += '\n';
+  });
+
+  return { html, text };
+}
+
+function buildCashiersPrivateReport(recs, range, header, periodLabel) {
+  // Same aggregation as cashiers report but WITHOUT sales amount — only diff/rating per cashier
+  const branchCashiers = {};
+  recs.forEach(rec => {
+    const br = STATE.branches.find(b => b.id === rec.branchId);
+    const bname = br ? br.name : rec.branchId;
+    if (!branchCashiers[bname]) branchCashiers[bname] = {};
+    const activeCashiers = br ? getActiveCashiers(br) : [];
+    activeCashiers.forEach(cIdx => {
+      const c = (rec.cashiers || [])[cIdx];
+      if (!c) return;
+      if (!c.sysCash && !c.sysNet && !c.actualCash && !c.actualNet) return;
+      const key = 'كاشير ' + (cIdx + 1);
+      if (!branchCashiers[bname][key]) branchCashiers[bname][key] = { surplus:0, deficit:0, days:0 };
+      const cashDiff = (c.actualCash||0) - (c.sysCash||0);
+      const netDiff  = (c.actualNet||0)  - (c.sysNet||0);
+      const net = cashDiff + netDiff;
+      branchCashiers[bname][key].days++;
+      if (net > 0) branchCashiers[bname][key].surplus += net;
+      else if (net < 0) branchCashiers[bname][key].deficit += Math.abs(net);
+    });
+  });
+
+  const privateHeader = `📋 تقييم الكاشيرات — ${range.label}`;
+  let html = `<div style="font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">${privateHeader}</div>`;
+  html += `<div style="font-size:11px;color:var(--text-2);margin-bottom:12px;padding:6px 10px;background:rgba(79,142,247,0.08);border:1px solid rgba(79,142,247,0.15);border-radius:8px">🔒 هذا التقرير مخصص لإرساله لكل فرع على حدة — لا يحتوي على أرقام المبيعات</div>`;
+
+  let text = `${privateHeader}\n${'━'.repeat(28)}\n🔒 تقرير خاص — العجز والزيادة فقط\n\n`;
+
+  Object.entries(branchCashiers).forEach(([bname, cashiers]) => {
+    const cEntries = Object.entries(cashiers);
+    if (!cEntries.length) return;
+
+    html += `<div style="margin-bottom:14px">
+      <div style="background:var(--bg-card2);border:1px solid var(--border);border-radius:10px 10px 0 0;padding:8px 12px;font-family:'Cairo',sans-serif;font-weight:700;font-size:13px;color:var(--text)">🏪 ${escHtml(bname)}</div>
+      <div style="border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;overflow:hidden">
+      <table class="wa-rep-branch-table">
+        <thead><tr>
+          <th style="text-align:right">الكاشير</th>
+          <th>أيام العمل</th>
+          <th>زيادة</th>
+          <th>عجز</th>
+          <th>الصافي</th>
+          <th>التقييم</th>
+        </tr></thead><tbody>`;
+
+    text += `🏪 ${bname}\n${'─'.repeat(22)}\n`;
+
+    // Branch totals for settlement
+    let brTotalSurplus = 0, brTotalDeficit = 0;
+
+    cEntries.forEach(([cname, d]) => {
+      const net = d.surplus - d.deficit;
+      const rating = getRatingLabel(net);
+      const netColor = net > 0 ? 'var(--yellow)' : net < 0 ? 'var(--red)' : 'var(--green)';
+      brTotalSurplus += d.surplus;
+      brTotalDeficit += d.deficit;
+
+      // Label for the net column: زيادة / عجز / متطابق
+      const netLabel = net > 0 ? `زيادة ${formatNum(net)}` : net < 0 ? `عجز ${formatNum(Math.abs(net))}` : 'متطابق';
+
+      html += `<tr>
+        <td style="text-align:right;font-weight:700;color:var(--accent)">${escHtml(cname)}</td>
+        <td style="color:var(--text-2)">${d.days}</td>
+        <td style="color:var(--yellow)">${d.surplus > 0 ? '+' + formatNum(d.surplus) : '—'}</td>
+        <td style="color:var(--red)">${d.deficit > 0 ? '-' + formatNum(d.deficit) : '—'}</td>
+        <td style="color:${netColor};font-weight:800">${netLabel}</td>
+        <td><span class="wa-rep-rank-badge wa-rep-rank-${rating.grade}">${rating.text}</span></td>
+      </tr>`;
+
+      text += `  ${cname} (${d.days} يوم):\n`;
+      if (d.surplus > 0) text += `    زيادة: ${formatNum(d.surplus)} ر.س\n`;
+      if (d.deficit > 0) text += `    عجز:   ${formatNum(d.deficit)} ر.س\n`;
+      if (d.surplus === 0 && d.deficit === 0) text += `    متطابق تماماً\n`;
+      // Net line: عجز / زيادة / متطابق
+      if (net > 0)      text += `    النتيجة: زيادة ${formatNum(net)} ر.س\n`;
+      else if (net < 0) text += `    النتيجة: عجز ${formatNum(Math.abs(net))} ر.س\n`;
+      else              text += `    النتيجة: متطابق\n`;
+      text += `    التقييم: ${rating.text}\n\n`;
+    });
+
+    // Branch settlement total row
+    const brNet = brTotalSurplus - brTotalDeficit;
+    const brNetLabel = brNet > 0 ? `زيادة ${formatNum(brNet)} ر.س` : brNet < 0 ? `عجز ${formatNum(Math.abs(brNet))} ر.س` : 'متطابق ✅';
+    const brNetColor = brNet > 0 ? 'var(--yellow)' : brNet < 0 ? 'var(--red)' : 'var(--green)';
+    html += `<tr style="background:var(--bg2);border-top:2px solid var(--border)">
+      <td colspan="2" style="text-align:right;font-family:'Cairo',sans-serif;font-weight:800;font-size:13px;color:var(--text);padding:8px 10px">📊 إجمالي الفرع (بعد التسوية)</td>
+      <td style="color:var(--yellow);font-weight:700">${brTotalSurplus > 0 ? '+' + formatNum(brTotalSurplus) : '—'}</td>
+      <td style="color:var(--red);font-weight:700">${brTotalDeficit > 0 ? '-' + formatNum(brTotalDeficit) : '—'}</td>
+      <td colspan="2" style="color:${brNetColor};font-weight:800;font-size:13px">${brNetLabel}</td>
+    </tr>`;
+
+    html += `</tbody></table></div></div>`;
+
+    text += `${'─'.repeat(22)}\n`;
+    text += `📊 إجمالي ${bname} بعد التسوية:\n`;
+    text += `   زيادة الكاشيرات: ${brTotalSurplus > 0 ? formatNum(brTotalSurplus) : '0'} ر.س\n`;
+    text += `   عجز الكاشيرات:  ${brTotalDeficit > 0 ? formatNum(brTotalDeficit) : '0'} ر.س\n`;
+    text += `   ➤ الإجمالي: ${brNetLabel}\n\n`;
+  });
+
+  // Rating legend
+  html += `<div style="margin-top:8px;padding:10px 12px;background:var(--bg-card2);border:1px solid var(--border);border-radius:10px;font-size:11px">
+    <div style="font-weight:700;color:var(--text-2);margin-bottom:6px">معيار التقييم (صافي الفارق):</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">
+      <span class="wa-rep-rank-badge wa-rep-rank-A">ممتاز ⭐ — صفر</span>
+      <span class="wa-rep-rank-badge wa-rep-rank-B">جيد جداً ✅ — أقل من 20</span>
+      <span class="wa-rep-rank-badge wa-rep-rank-C">جيد 👍 — أقل من 60</span>
+      <span class="wa-rep-rank-badge wa-rep-rank-D">مقبول 🟡 — أقل من 100</span>
+      <span class="wa-rep-rank-badge wa-rep-rank-E">متابعة 🔴 — 100 فأكثر</span>
+    </div>
+  </div>`;
+
+  text += `${'━'.repeat(28)}\nمعيار التقييم:\n`;
+  text += `  ⭐ ممتاز    — صفر فارق\n`;
+  text += `  ✅ جيد جداً — أقل من 20 ر.س\n`;
+  text += `  👍 جيد      — أقل من 60 ر.س\n`;
+  text += `  🟡 مقبول    — أقل من 100 ر.س\n`;
+  text += `  🔴 متابعة   — 100 ر.س فأكثر\n`;
+
+  return { html, text };
+}
+
+function buildSettleReport(recs, range, header, periodLabel) {
+  // Net = surplus - deficit per branch
+  const branchData = {};
+  recs.forEach(rec => {
+    const br = STATE.branches.find(b => b.id === rec.branchId);
+    const name = br ? br.name : rec.branchId;
+    if (!branchData[name]) branchData[name] = { surplus:0, deficit:0 };
+    const sum = calcBranchSummary(rec);
+    const net = sum.diff;
+    if (net > 0) branchData[name].surplus += net;
+    else branchData[name].deficit += Math.abs(net);
+  });
+
+  const sorted = Object.entries(branchData).sort((a,b) => {
+    const na = a[1].surplus - a[1].deficit;
+    const nb = b[1].surplus - b[1].deficit;
+    return na - nb; // worst first
+  });
+
+  const totalSurplus = sorted.reduce((s,[,v]) => s + v.surplus, 0);
+  const totalDeficit = sorted.reduce((s,[,v]) => s + v.deficit, 0);
+  const netAll = totalSurplus - totalDeficit;
+  const worstDef = [...sorted].sort((a,b) => b[1].deficit - a[1].deficit)[0];
+  const bestSur  = [...sorted].sort((a,b) => b[1].surplus - a[1].surplus)[0];
+
+  let html = `<div style="font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">${header}</div>`;
+  html += `<div class="wa-rep-stat-grid">
+    <div class="wa-rep-stat"><div class="sv" style="color:var(--yellow)">${formatNum(totalSurplus)}</div><div class="sl">إجمالي الزيادة</div></div>
+    <div class="wa-rep-stat"><div class="sv" style="color:var(--red)">${formatNum(totalDeficit)}</div><div class="sl">إجمالي العجز</div></div>
+    <div class="wa-rep-stat"><div class="sv" style="color:${netAll>=0?'var(--green)':'var(--red)'}">${netAll>=0?'+':''}${formatNum(netAll)}</div><div class="sl">صافي بعد التسوية</div></div>
+  </div>`;
+  html += `<div style="overflow-x:auto"><table class="wa-rep-branch-table">
+    <thead><tr><th style="text-align:right">الفرع</th><th>زيادة</th><th>عجز</th><th>الصافي</th><th>الحالة</th></tr></thead><tbody>`;
+
+  let text = `${header}\n${'━'.repeat(28)}\n`;
+  text += `📈 إجمالي الزيادة: +${formatNum(totalSurplus)} ر.س\n`;
+  text += `📉 إجمالي العجز:  -${formatNum(totalDeficit)} ر.س\n`;
+  text += `⚖️ الصافي بعد التسوية: ${netAll>=0?'+':''}${formatNum(netAll)} ر.س\n`;
+  text += `${'━'.repeat(28)}\n\n`;
+  text += `تفصيل الفروع:\n`;
+
+  sorted.forEach(([name, d]) => {
+    const net = d.surplus - d.deficit;
+    const color = net > 0 ? 'var(--yellow)' : net < 0 ? 'var(--red)' : 'var(--green)';
+    const status = net > 0 ? '🟡 زيادة' : net < 0 ? '🔴 عجز' : '🟢 متطابق';
+    html += `<tr>
+      <td style="text-align:right;font-weight:700;color:var(--text)">${escHtml(name)}</td>
+      <td style="color:var(--yellow)">${d.surplus>0?'+'+formatNum(d.surplus):'—'}</td>
+      <td style="color:var(--red)">${d.deficit>0?'-'+formatNum(d.deficit):'—'}</td>
+      <td style="color:${color};font-weight:800">${net>=0?'+':''}${formatNum(net)}</td>
+      <td>${status}</td>
+    </tr>`;
+    text += `  ${name}: صافي ${net>=0?'+':''}${formatNum(net)} ر.س ${status}\n`;
+  });
+
+  html += `</tbody></table></div>`;
+  if (worstDef && worstDef[1].deficit > 0)
+    html += `<div style="margin-top:10px;padding:8px 12px;background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);border-radius:8px;font-size:12px;color:var(--red)">📍 أعلى عجز: <strong>${escHtml(worstDef[0])}</strong> — ${formatNum(worstDef[1].deficit)} ر.س</div>`;
+  if (bestSur && bestSur[1].surplus > 0)
+    html += `<div style="margin-top:6px;padding:8px 12px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:8px;font-size:12px;color:var(--yellow)">📍 أعلى زيادة: <strong>${escHtml(bestSur[0])}</strong> +${formatNum(bestSur[1].surplus)} ر.س</div>`;
+
+  if (worstDef && worstDef[1].deficit > 0) text += `\n⚠️ أعلى عجز: ${worstDef[0]} (${formatNum(worstDef[1].deficit)} ر.س)\n`;
+  if (bestSur  && bestSur[1].surplus > 0)  text += `✅ أعلى زيادة: ${bestSur[0]} (+${formatNum(bestSur[1].surplus)} ر.س)\n`;
+
+  return { html, text };
+}
+
+function copyWaReport() {
+  const text = document.getElementById('waRepText').value;
+  if (!text) { showToast('لا يوجد تقرير للنسخ', 'red'); return; }
+  navigator.clipboard.writeText(text).then(() => showToast('✓ تم نسخ التقرير', 'green'))
+    .catch(() => {
+      const ta = document.getElementById('waRepText');
+      ta.select(); try { document.execCommand('copy'); } catch(e) {}
+      showToast('✓ تم النسخ', 'green');
+    });
+}
+
+function sendWaReport() {
+  const text = document.getElementById('waRepText').value;
+  if (!text) { showToast('ولّد التقرير أولاً', 'red'); return; }
+  openWAChooser(text);
+}
+
+function downloadWaImage() {
+  const previewCard = document.getElementById('waRepPreviewCard');
+  const range = getWaRepDateRange();
+  if (!range || !_waRepLastText) { showToast('ولّد التقرير أولاً', 'red'); return; }
+
+  // Build a styled HTML page and open it for screenshot hint
+  const logoSrc = localStorage.getItem('asala_logo') || '';
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+  const bg  = isDark ? '#0d1425' : '#ffffff';
+  const fg  = isDark ? '#dce8ff' : '#1a2040';
+  const fg2 = isDark ? '#7a90c0' : '#4a5a90';
+  const card= isDark ? '#0f1624' : '#f4f7ff';
+  const bdr = isDark ? '#1e2d4a' : '#c5d0ee';
+  const acc = isDark ? '#4f8ef7' : '#2563eb';
+
+  const lines = _waRepLastText.split('\n');
+  const linesHtml = lines.map(l => {
+    if (!l) return '<br>';
+    // Color lines with emojis
+    let style = '';
+    if (l.includes('عجز') && !l.includes('إجمالي')) style = 'color:#f43f5e';
+    else if (l.includes('زيادة') && !l.includes('إجمالي')) style = 'color:#f59e0b';
+    else if (l.includes('ممتاز') || l.includes('متطابق') || l.includes('مطابق')) style = 'color:#10b981';
+    else if (l.includes('تحقيق') || l.includes('يحتاج')) style = 'color:#f43f5e';
+    else if (l.startsWith('━') || l.startsWith('─')) style = 'color:'+bdr+';letter-spacing:2px';
+    else if (l.match(/^[🥇🥈🥉]/)) style = 'color:'+acc+';font-weight:700';
+    return `<div style="${style}">${l.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+  }).join('');
+
+  const win = window.open('', '_blank', 'width=520,height=700');
+  if (!win) { showToast('يُرجى السماح بالنوافذ المنبثقة', 'red'); return; }
+  win.document.write(`<!DOCTYPE html><html dir="rtl"><head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+      body{margin:0;padding:0;background:${bg};font-family:'Cairo',sans-serif;color:${fg}}
+      .rep-wrap{padding:24px;max-width:480px;margin:0 auto}
+      .rep-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid ${acc}}
+      .rep-logo{width:50px;height:50px;border-radius:50%;object-fit:cover;border:2px solid ${acc}}
+      .rep-logo-ph{width:50px;height:50px;border-radius:50%;background:${acc};display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;font-weight:900}
+      .rep-title{font-size:16px;font-weight:900;color:${fg}}
+      .rep-sub{font-size:12px;color:${fg2}}
+      .rep-body{background:${card};border:1px solid ${bdr};border-radius:14px;padding:18px 20px;font-size:13px;line-height:2;white-space:pre-wrap;color:${fg}}
+      .rep-footer{margin-top:16px;text-align:center;font-size:11px;color:${fg2};border-top:1px solid ${bdr};padding-top:10px}
+      .btn-row{margin-top:14px;display:flex;gap:8px;justify-content:center}
+      button{padding:10px 20px;border:none;border-radius:8px;background:${acc};color:#fff;font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
+      button.sec{background:transparent;border:1px solid ${bdr};color:${fg}}
+      @media print{.btn-row{display:none}}
+    </style>
+  </head><body>
+    <div class="rep-wrap">
+      <div class="rep-header">
+        ${logoSrc ? `<img class="rep-logo" src="${logoSrc}">` : `<div class="rep-logo-ph">م</div>`}
+        <div>
+          <div class="rep-title">تقرير الأداء الدوري</div>
+          <div class="rep-sub">${escHtml(range.label)}</div>
+        </div>
+      </div>
+      <div class="rep-body">${linesHtml}</div>
+      <div class="rep-footer">صدر من نظام أصالة — ${new Date().toLocaleDateString('ar-SA')}</div>
+    </div>
+    <div class="btn-row">
+      <button onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+      <button class="sec" onclick="window.close()">إغلاق</button>
+    </div>
+  </body></html>`);
+  win.document.close();
+  showToast('✓ تم فتح التقرير — استخدم طباعة أو لقطة شاشة', 'green');
+}
+
+function setupWaReportsPage() {
+  const today = todayStr();
+  // Default: yesterday → yesterday (التقرير حق البارحه افتراضياً)
+  const yest = new Date(today + 'T00:00:00');
+  yest.setDate(yest.getDate() - 1);
+  const yesterdayVal = yest.toISOString().slice(0,10);
+
+  // Only set defaults if fields are empty (don't overwrite user's selection on re-visit)
+  const fromEl = document.getElementById('waRep-from');
+  const toEl   = document.getElementById('waRep-to');
+  if (!fromEl.value) fromEl.value = yesterdayVal;
+  if (!toEl.value)   toEl.value   = yesterdayVal;
+
+  // Default month: current month
+  const now = new Date();
+  const monthEl = document.getElementById('waRep-month');
+  if (!monthEl.value) monthEl.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  // Auto-build report with current settings
+  buildWaReport();
+}
+
+// ============================================================
+// =================== DEFERRED APP START ====================
+// ============================================================
+
 async function refreshAtmBadges() {
   if (!ATM_MAP) return;
   (STATE.branches||[]).forEach(br => {

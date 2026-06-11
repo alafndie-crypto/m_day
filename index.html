@@ -886,6 +886,8 @@ button,.nav-btn,.recon-tab{
             <button class="mini-btn" style="text-align:right;padding:9px 13px" onclick="exportData()">📤 تصدير بيانات النظام (JSON)</button>
             <button class="mini-btn" style="text-align:right;padding:9px 13px" onclick="triggerImport()">📥 استيراد بيانات النظام</button>
             <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+            <button class="mini-btn" style="text-align:right;padding:9px 13px;background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(16,185,129,0.05));border-color:rgba(16,185,129,0.4);color:var(--green)" onclick="triggerMerge()">🔀 دمج نسخة احتياطية (بدون حذف)</button>
+            <input type="file" id="mergeFile" accept=".json" style="display:none" onchange="mergeData(event)">
             <button class="mini-btn del" style="text-align:right;padding:9px 13px" onclick="clearTodayData()">🧹 مسح بيانات اليوم الحالي</button>
             <button class="mini-btn del" style="text-align:right;padding:9px 13px" onclick="resetAllData()">⚠️ إعادة ضبط المصنع (حذف الكل)</button>
           </div>
@@ -3393,6 +3395,122 @@ function universalSaveXLSX(filename, wb) {
   }
 }
 // ─────────────────────────────────────────────────────────────
+
+// ============================================================
+// =================== MERGE (دمج ذكي) =======================
+// ============================================================
+
+function triggerMerge() {
+  if (window.Android && window.Android.openJsonFilePickerForMerge) {
+    window.Android.openJsonFilePickerForMerge();
+  } else {
+    document.getElementById('mergeFile').value = '';
+    document.getElementById('mergeFile').click();
+  }
+}
+
+function mergeData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (ev) => {
+    try {
+      const incoming = JSON.parse(ev.target.result);
+      if (!incoming.branches || !incoming.records) throw new Error('ملف غير صالح');
+      _performMerge(incoming);
+    } catch(err) {
+      showToast('خطأ في قراءة الملف: ' + err.message, 'red');
+    }
+  };
+  reader.readAsText(file);
+}
+
+window.onAndroidJsonMerge = function(jsonText) {
+  try {
+    const incoming = JSON.parse(jsonText);
+    if (!incoming.branches || !incoming.records) throw new Error('ملف غير صالح');
+    _performMerge(incoming);
+  } catch(err) {
+    showToast('خطأ في قراءة الملف: ' + err.message, 'red');
+  }
+};
+
+function _performMerge(incoming) {
+  // 1. دمج الفروع: أضف أي فرع غير موجود بالاسم
+  const existingBranchNames = new Set(STATE.branches.map(b => b.name));
+  let branchesAdded = 0;
+  (incoming.branches || []).forEach(inBr => {
+    if (!existingBranchNames.has(inBr.name)) {
+      const newId = 'b_merge_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+      STATE.branches.push({ ...inBr, id: newId });
+      existingBranchNames.add(inBr.name);
+      branchesAdded++;
+    }
+  });
+
+  // 2. خريطة (branchName → branchId) للجهاز الحالي
+  const nameToId = {};
+  STATE.branches.forEach(b => { nameToId[b.name] = b.id; });
+
+  // 3. مفاتيح السجلات الموجودة
+  const existingKeys = new Set(
+    STATE.records.map(r => r.date + '|' + r.branchId)
+  );
+
+  // 4. دمج السجلات: أضف فقط ما هو غير موجود
+  let recordsAdded = 0;
+  let recordsSkipped = 0;
+
+  (incoming.records || []).forEach(inRec => {
+    const inBranch = (incoming.branches || []).find(b => b.id === inRec.branchId);
+    const branchName = inBranch ? inBranch.name : null;
+    const localBranchId = branchName ? nameToId[branchName] : null;
+    if (!localBranchId) { recordsSkipped++; return; }
+
+    const key = inRec.date + '|' + localBranchId;
+    if (existingKeys.has(key)) { recordsSkipped++; return; }
+
+    STATE.records.push({ ...inRec, branchId: localBranchId });
+    existingKeys.add(key);
+    recordsAdded++;
+  });
+
+  // 5. دمج netSummary
+  if (incoming.netSummary && typeof incoming.netSummary === 'object') {
+    if (!STATE.netSummary) STATE.netSummary = {};
+    Object.entries(incoming.netSummary).forEach(([k, v]) => {
+      if (!STATE.netSummary[k]) STATE.netSummary[k] = v;
+    });
+  }
+
+  // 6. دمج ATM_MAP
+  if (incoming.__atm_map__ && typeof incoming.__atm_map__ === 'object') {
+    Object.entries(incoming.__atm_map__).forEach(([brId, atms]) => {
+      const inBranch = (incoming.branches || []).find(b => b.id === brId);
+      const localId  = inBranch ? nameToId[inBranch.name] : null;
+      if (localId && !ATM_MAP[localId]) ATM_MAP[localId] = atms;
+    });
+    saveAtmMap();
+  }
+
+  // 7. حفظ وتحديث الواجهة
+  save();
+  renderAdminPage();
+  renderEntryPage();
+
+  // 8. ملخص
+  showToast('✅ تم الدمج: ' + recordsAdded + ' سجل جديد، ' + recordsSkipped + ' موجود', 'green');
+  setTimeout(() => {
+    const msg =
+      'تم الدمج بنجاح! ✅\n\n' +
+      '📋 سجلات مضافة: ' + recordsAdded + '\n' +
+      '⏭️ سجلات كانت موجودة (تجاهلها): ' + recordsSkipped + '\n' +
+      '📊 إجمالي السجلات الآن: ' + STATE.records.length +
+      (branchesAdded > 0 ? '\n🏪 فروع جديدة أضيفت: ' + branchesAdded : '') +
+      '\n\nهل تريد تصدير نسخة موحدة الآن؟';
+    if (confirm(msg)) exportData();
+  }, 400);
+}
 
 // ── استيراد البيانات: يدعم APK (Android Bridge) والمتصفح ───
 function triggerImport() {
